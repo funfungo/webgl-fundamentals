@@ -1,0 +1,9 @@
+{
+  language: '简体中文',
+  defaultExampleCaption: "点击在新窗口打开",
+  title: 'WebGL 基础知识',
+  description: '从头开始学习WebGL',
+  link: 'http://webglfundamentals.org/webgl/lessons/zh_cn',
+  commentSectionHeader: '<div>有疑问? <a href="http://stackoverflow.com/questions/tagged/webgl">在stackover上提问吧</a>.</div>\n        <div>有Bug? <a href="http://github.com/vinci-mz/webgl-fundamentals/issues">在github上新建issue</a>.</div>',
+}
+
