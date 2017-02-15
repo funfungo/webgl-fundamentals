@@ -91,10 +91,14 @@ WebGL只关心两件事情: 剪辑空间坐标(clip space)和颜色。
 
     // 片元着色器需要我们设定一个默认数据精度。mediump是一个很好的默认值。
     // mediump表示"medium precision"(中等精度值)
+    precision mediump float;
 
     void main() {
       // gl_FragColor 是片元着色器的一个特殊变量,用来设置颜色值
-      gl_FragColor = vec4(1, 0, 0.5, 1); // 返回棕紫色
+      // 译注: WebGL遵循严格的数据格式,默认数据精度为中等精度的浮点数
+      //      因此我们需要始终使用浮点数来表示数据
+      gl_FragColor = vec4(1.0, 0.0, 0.5, 1.0);
+
     }
 
 这里我们设置`gl_FragColor`为`1.0, 0.0, 0.5, 1.0`,分别对应rgba中的红/绿/蓝/透明度通道,
@@ -143,7 +147,7 @@ WebGL只关心两件事情: 剪辑空间坐标(clip space)和颜色。
 
       void main() {
         // gl_FragColor 是片元着色器的一个特殊变量,用来设置颜色值
-        gl_FragColor = vec4(1, 0, 0.5, 1);
+        gl_FragColor = vec4(1.0, 0.0, 0.5, 1.0);
       }
 
     </script>
@@ -257,10 +261,10 @@ WebGL可以让我们在全局的绑定点(bind points)上操作许多WebGL资源
 
 上面这行代码告诉WebGL将-1到+1的剪辑空间映射到宽度范围为0->`gl.canvas.width`,高度范围从0->`gl.canvas.height`的画布中。
 
-设定清空画布的颜色为`0, 0, 0, 0`(对应rgba), 因此画布显示为透明。
+设定清空画布的颜色为`0.0, 0.0, 0.0, 0.0`(对应rgba), 因此画布显示为透明。
 
     // 清空画布
-    gl.clearColor(0, 0, 0, 0);
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
 告诉WebGL我们将执行的着色器程序
@@ -294,7 +298,7 @@ WebGL可以让我们在全局的绑定点(bind points)上操作许多WebGL资源
 
     attribute vec4 a_position;
 `vec4`是一个四维浮点数值。你可以认为它等同于JavaScript中的`a_position = {x: 0, y: 0, z: 0, w: 0}`。
-我们还设置了`size = 2`。attributes默认值为`0, 0, 0, 1`所以这里我们的attribute变量将从缓冲区中得到四维数据的前两个值(x和y),
+我们还设置了`size = 2`。attributes默认值为`0.0, 0.0, 0.0, 1.0`所以这里我们的attribute变量将从缓冲区中得到四维数据的前两个值(x和y),
 z和w分量分别为默认值0和1。
 
 最后我们终于可以让WebGL执行我们的GLSL程序了。
@@ -308,23 +312,23 @@ z和w分量分别为默认值0和1。
 第二次执行时,这两个值分别被设定为接下来的两个值。最后一次执行则为positionBuffer中的最后两个值。
 
 我们设定`primitiveType`为`gl.TRIANGLES`, 因此顶点着色器没执行三次WebGL会根据我们的顶点数据画三角形。不论画布多大,这些数据都会被映射到
-剪辑空间, 每个方向的值从-1到+1。
+剪辑空间, 每个方向的值从-1.0到+1.0。
 
 这里我们仅仅是将positionBuffer中的数据复制到`gl_Position`中,所以三角形三个顶点对应的剪辑坐标值为
 
-      0, 0,
-      0, 0.5,
-      0.7, 0,
+      0.0, 0.0,
+      0.0, 0.5,
+      0.7, 0.0,
 
 WebGL将要把剪辑空间坐标转换为像素坐标。如果一块画布为400x300像素。我们可以得到相应的点的坐标值为
 
      剪辑空间           像素坐标
-       0, 0       ->   200, 150
-       0, 0.5     ->   200, 225
-     0.7, 0       ->   340, 150
+     0.0, 0.0    ->    200, 150
+     0,0, 0.5    ->    200, 225
+     0.7, 0.0    ->    340, 150
 
 接下来WebGL就会渲染这个三角形。对于需要绘制的每一个像素,WebGL都会调用片元着色器。
-我们示例中的片元着色器仅仅是将`gl_FragColor`设定为`1, 0, 0.5, 1`, canvas中颜色通道为8位, 因此WebGL将使用rgba值为
+我们示例中的片元着色器仅仅是将`gl_FragColor`设定为`1.0, 0.0, 0.5, 1.0`, canvas中颜色通道为8位, 因此WebGL将使用rgba值为
 `[255, 0, 127, 255]`的颜色进行绘制。
 
 这是执行的结果
@@ -359,7 +363,7 @@ WebGL将要把剪辑空间坐标转换为像素坐标。如果一块画布为400
     +    // 将坐标从(0.0->2.0)映射到(-1.0->1.0) (剪辑空间坐标)
     +    vec2 clipSpace = zeroToTwo - 1.0;
     +
-    *    gl_Position = vec4(clipSpace, 0, 1);
+    *    gl_Position = vec4(clipSpace, 0.0, 1.0);
       }
 
     </script>
@@ -410,7 +414,7 @@ WebGL将要把剪辑空间坐标转换为像素坐标。如果一块画布为400
 
 这次你看到矩形处于画布的底部。WebGL以左下角为原点(0, 0)。如果要将它转变为传统2D canvas的以左上角为原点, 我们需要对剪辑空间的y轴进行翻转。
 
-    *   gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+    *   gl_Position = vec4(clipSpace * vec2(1.0, -1.0), 0.0, 1.0);
 
 现在这个矩形出现在了我们需要的位置上。
 
@@ -525,7 +529,7 @@ WebGL将要把剪辑空间坐标转换为像素坐标。如果一块画布为400
 <pre class="prettyprint">
   var shaderSource =
     "void main() {\n" +
-    "  gl_FragColor = vec4(1,0,0,1);\n" +
+    "  gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);\n" +
     "}";
 </pre>
 
@@ -534,7 +538,7 @@ WebGL将要把剪辑空间坐标转换为像素坐标。如果一块画布为400
 <pre class="prettyprint">
   var shaderSource = `
     void main() {
-      gl_FragColor = vec4(1,0,0,1);
+      gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
     }
   `;
 </pre>
