@@ -212,11 +212,11 @@ We now have to supply colors for WebGL to use.
     +gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
     +
     +// Tell the color attribute how to get data out of colorBuffer (ARRAY_BUFFER)
-    +var size = 4;          // 4 components per iteration
-    +var type = gl.FLOAT;   // the data is 32bit floats
-    +var normalize = false; // don't normalize the data
-    +var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
-    +var offset = 0;        // start at the beginning of the buffer
+    +var size = 4;          // 每次迭代处理四个数据
+    +var type = gl.FLOAT;   // 每个数据为32位浮点数
+    +var normalize = false; // 不对数据进行标准化
+    +var stride = 0;        // 每次迭代的数据之间存储空间间隔为0
+    +var offset = 0;        // 从缓冲区头部开始存储
     +gl.vertexAttribPointer(
     +    colorLocation, size, type, normalize, stride, offset)
 
@@ -303,58 +303,52 @@ offset指定缓冲区中的偏移量,即从缓冲区何处开始存储。
 如果你只在缓冲区中存储同一类信息的数据(译注:比如只存储坐标信息或只存储颜色信息), stride和offset的值始终未0。
 stride为0意味着相邻数据之间的间隔与数据的大小相同。offset为0表示数据从缓冲区的起始位置开始存储。
 使用缓冲区存储多种数据(译注:这种情况下stride和offset将不为0)会让程序变得复杂,但会带来性能上的优化。
-If you are using 1 buffer per type of data then both stride and offset can
-always be 0.  0 for stride means "use a stride that matches the type and
-size".  0 for offset means start at the beginning of the buffer.  Setting
-them to values other than 0 is more complicated and though it has some
-benefits in terms of performance it's not worth the complication unless
-you are trying to push WebGL to its absolute limits.
 
-I hope that clears up buffers and attributes.
+希望通过上面的内容让你更加的了解buffers和attributes。
 
-Next let's go over [shaders and GLSL](webgl-shaders-and-glsl.html).
+接下来我们接着看 [shaders and GLSL](webgl-shaders-and-glsl.html)。
 
-<div class="webgl_bottombar"><h3>What's normalizeFlag for in vertexAttribPointer?</h3>
+<div class="webgl_bottombar"><h3>vertexAttribPointer中的normalize参数是什么?</h3>
 <p>
-The normalize flag is for all the non floating point types. If you pass
-in false then values will be interpreted as the type they are. BYTE goes
-from -128 to 127, UNSIGNED_BYTE goes from 0 to 255, SHORT goes from -32768 to 32767 etc...
+normalize参数通常是用于标准化非浮点数的数据类型。当它为false时, 数据将保持其原本的数据类型。
+比如BTYE类型数据取值范围为 -128 到 127, UNSIGNED_BYTE类型范围为 0 到255, SHORT为 -32768 到 32767。
+(译注: JavaScript是一种弱类型语言, 其本身并没有上面提到的数据类型的区分。但我们在WebGL基础原理那一章节中也提到过,
+GLSL是一种非常严谨的的类似C/C++的语言,它使用严格定义的数据类型,因此使用JavaScript将数据传递到GPU时,必须将数据转换为所需要的数据类型。
+我们可以使用JavaScript类型数据来完成转换。)
 </p>
 <p>
-If you set the normalize flag to true then the values of a BYTE (-128 to 127)
-represent the values -1.0 to +1.0, UNSIGNED_BYTE (0 to 255) become 0.0 to +1.0.
-A normalized SHORT also goes from -1.0 to +1.0 it just has more resolution than a BYTE.
+如果normalize参数设置为true, 那么对于一个BYTE类型的数据, 其取值将从 -128 到 127 映射到 -1.0 到 1.0。
+UNSIGNED_BYTE 从 0 到 255 映射为 0.0 到 +1.0, SHORT数据也会被映射到 -1.0 到 1.0范围内,相比于BYTE数据,
+其取值会更加的精确(译注:小数点后具有更多的位数)。
 </p>
 <p>
-The most common use for normalized data is for colors. Most of the time colors
-only go from 0.0 to 1.0. Using a full float each for red, green, blue and alpha
-would use 16 bytes per vertex per color. If you have complicated geometry that
-can add up to a lot of bytes. Instead you could convert your colors to UNSIGNED_BYTEs
-where 0 represents 0.0 and 255 represents 1.0. Now you'd only need 4 bytes per color
-per vertex, a 75% savings.
+一个常见的使用normalize参数的例子是颜色数据的标准化。 着色器中颜色的取值范围是从 0.0 到 1.0。
+使用浮点数()来存储颜色各通道(红,绿,蓝,透明度)的信息,每个顶点的每个颜色信息将会占用16字节的空间(4byte * 4)。
+绘制复杂的图形时,因为有非常多的顶点和颜色信息,这些数据加起来将占用非常多的空间。
+这种情况下使用UNSIGNED_BYTE类型(0-255)来存储颜色信息, 再通过normalize标准化将其转换到0.0到1.0范围, 你仅仅需要4位的空间来存储颜色
+节省了75%的空间。
 </p>
-<p>Let's change our code to do this. When we tell WebGL how to extract our colors we'd use</p>
+<p>通过修改示例中的代码来帮助大家理解。 当WebGL获取颜色数据时, 我们执行 </p>
 <pre class="prettyprint showlinemods">
   // Tell the color attribute how to get data out of colorBuffer (ARRAY_BUFFER)
-  var size = 4;                 // 4 components per iteration
-*  var type = gl.UNSIGNED_BYTE;  // the data is 8bit unsigned bytes
-*  var normalize = true;         // normalize the data
-  var stride = 0;               // 0 = move forward size * sizeof(type) each iteration to get the next position
-  var offset = 0;               // start at the beginning of the buffer
+  var size = 4;                  // 每次迭代处理四个数据
+*  var type = gl.UNSIGNED_BYTE;   // 数据为8位unsigned byte类型
+*  var normalize = true;          // 对数据进行标准化
+  var stride = 0;                // 每次迭代的数据之间存储空间间隔为0
+  var offset = 0;                // 从缓冲区头部开始存储
   gl.vertexAttribPointer(
       colorLocation, size, type, normalize, stride, offset)
 </pre>
-<p>And when we fill out our buffer with colors we'd use</p>
+<p>当我们往缓冲区中填充颜色数据时, 执行</p>
 <pre class="prettyprint showlinemods">
-// Fill the buffer with colors for the 2 triangles
-// that make the rectangle.
+// 往缓冲区中填充组成矩形的两个三角形的颜色数据
 function setColors(gl) {
-  // Pick 2 random colors.
-  var r1 = Math.random() * 256; // 0 to 255.99999
-  var b1 = Math.random() * 256; // these values
-  var g1 = Math.random() * 256; // will be truncated
-  var r2 = Math.random() * 256; // when stored in the
-  var b2 = Math.random() * 256; // Uint8Array
+  // 随机选取两个颜色
+  var r1 = Math.random() * 256; // 当使用类型数组Uint8Array
+  var b1 = Math.random() * 256; // 对这些随机数值转换时,
+  var g1 = Math.random() * 256; // 随机数值小数点后的部分
+  var r2 = Math.random() * 256; // 会被自动截断
+  var b2 = Math.random() * 256;
   var g2 = Math.random() * 256;
 
   gl.bufferData(
@@ -370,7 +364,7 @@ function setColors(gl) {
 }
 </pre>
 <p>
-Here's that sample.
+运行的结果:
 </p>
 
 {{{example url="../webgl-2d-rectangle-with-2-byte-colors.html" }}}
